@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Jan-Dhan Gateway</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">🏦</span>
+            <span class="brand-name">Jan-Dhan Gateway</span>
+        </div>
+        <div class="nav-user">
+            <span id="userName">Loading...</span>
+            <button onclick="logout()" class="btn-logout">Logout</button>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Benefit Claim System</h1>
+            <p>Submit your claim request securely</p>
+        </div>
+
+        <div class="card claim-card">
+            <h2>New Claim Request</h2>
+            
+            <form id="claimForm">
+                <div class="form-group">
+                    <label for="scheme">Select Scheme</label>
+                    <select id="scheme" required>
+                        <option value="">-- Choose Benefit Scheme --</option>
+                        <option value="Pension">Pension</option>
+                        <option value="Scholarship">Scholarship</option>
+                        <option value="Health Insurance">Health Insurance</option>
+                        <option value="Housing Subsidy">Housing Subsidy</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="amount">Amount (₹)</label>
+                    <input type="number" id="amount" placeholder="Enter claim amount" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Submit Claim</button>
+            </form>
+        </div>
+
+        <div id="resultSection" class="result-section" style="display: none;">
+            <div id="resultCard" class="card result-card"></div>
+        </div>
+
+        <div class="card history-card">
+            <h2>Recent Transactions</h2>
+            <div id="transactionHistory">
+                <p class="empty-state">No transactions yet</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const citizenId = sessionStorage.getItem('citizenId');
+        if (!citizenId) {
+            window.location.href = '/';
+        }
+
+        document.getElementById('userName').textContent = `ID: ${citizenId}`;
+
+        // Handle claim submission
+        document.getElementById('claimForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const scheme = document.getElementById('scheme').value;
+            const amount = document.getElementById('amount').value;
+            
+            const resultSection = document.getElementById('resultSection');
+            const resultCard = document.getElementById('resultCard');
+            
+            resultCard.innerHTML = '<div class="loading">Processing...</div>';
+            resultSection.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/transaction/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        citizen_id: citizenId,
+                        scheme: scheme,
+                        amount: parseFloat(amount)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const tx = data.transaction;
+                    let statusClass = tx.approved ? 'status-success' : 'status-danger';
+                    let statusText = tx.approved ? 'Approved ✓' : 'Rejected ✗';
+                    
+                    let fraudInfo = '';
+                    if (tx.fraud_analysis) {
+                        const fraud = tx.fraud_analysis;
+                        fraudInfo = `
+                            <div class="fraud-analysis">
+                                <div class="fraud-score">
+                                    Risk Level: ${fraud.risk_level}
+                                </div>
+                                <div class="fraud-prob">Fraud Probability: ${(fraud.fraud_probability * 100).toFixed(1)}%</div>
+                            </div>
+                        `;
+                    }
+
+                    resultCard.innerHTML = `
+                        <div class="result-status ${statusClass}">
+                            <h3>${statusText}</h3>
+                        </div>
+                        <div class="result-details">
+                            <div class="detail-row">
+                                <span>Transaction ID:</span>
+                                <strong>${tx.transaction_id || 'N/A'}</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Scheme:</span>
+                                <strong>${scheme}</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Amount:</span>
+                                <strong>₹${amount}</strong>
+                            </div>
+                            ${tx.message ? `<div class="detail-message">${tx.message}</div>` : ''}
+                            ${fraudInfo}
+                        </div>
+                    `;
+                } else {
+                    resultCard.innerHTML = `
+                        <div class="result-status status-danger">
+                            <h3>Error</h3>
+                        </div>
+                        <div class="result-details">
+                            <p>${data.error || 'Transaction failed'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultCard.innerHTML = `
+                    <div class="result-status status-danger">
+                        <h3>Connection Error</h3>
+                    </div>
+                    <div class="result-details">
+                        <p>Unable to process request. Please try again.</p>
+                    </div>
+                `;
+            }
+        });
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

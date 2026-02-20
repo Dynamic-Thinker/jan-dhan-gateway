@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Jan-Dhan Gateway</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-body">
+    <nav class="navbar admin-navbar">
+        <div class="nav-brand">
+            <span class="logo">🛡️</span>
+            <span class="brand-name">Admin Dashboard</span>
+        </div>
+        <div class="nav-user">
+            <span>Administrator</span>
+            <button onclick="logout()" class="btn-logout">Logout</button>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <h3 id="totalCitizens">0</h3>
+                    <p>Total Citizens</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <h3 id="approvedTx">0</h3>
+                    <p>Approved</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <h3 id="pendingTx">0</h3>
+                    <p>Pending Review</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🚫</div>
+                <div class="stat-content">
+                    <h3 id="rejectedTx">0</h3>
+                    <p>Rejected</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="showTab('verify')">Verify Citizen</button>
+            <button class="tab-btn" onclick="showTab('ledger')">Blockchain Ledger</button>
+            <button class="tab-btn" onclick="showTab('analytics')">Analytics</button>
+        </div>
+
+        <div id="verifyTab" class="tab-content active">
+            <div class="card">
+                <h2>Citizen Verification</h2>
+                <form id="verifyForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="verifyCitizenId">Citizen ID</label>
+                            <input type="text" id="verifyCitizenId" placeholder="Enter 12-digit ID" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Verify</button>
+                    </div>
+                </form>
+                <div id="verifyResult" class="verify-result"></div>
+            </div>
+        </div>
+
+        <div id="ledgerTab" class="tab-content">
+            <div class="card">
+                <h2>Blockchain Ledger</h2>
+                <div class="ledger-controls">
+                    <button onclick="loadLedger()" class="btn-secondary">Refresh Ledger</button>
+                    <button onclick="verifyLedger()" class="btn-secondary">Verify Integrity</button>
+                </div>
+                <div id="ledgerContent" class="ledger-content">
+                    <p class="empty-state">Click "Refresh Ledger" to load transactions</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="analyticsTab" class="tab-content">
+            <div class="card">
+                <h2>System Analytics</h2>
+                <div id="analyticsContent" class="analytics-content">
+                    <div class="analytics-section">
+                        <h3>Transaction Volume</h3>
+                        <div class="chart-placeholder">
+                            <p>📈 Chart visualization would go here</p>
+                        </div>
+                    </div>
+                    <div class="analytics-section">
+                        <h3>Fraud Detection Rate</h3>
+                        <div class="chart-placeholder">
+                            <p>🛡️ ML model performance metrics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check admin authentication
+        if (sessionStorage.getItem('userType') !== 'admin') {
+            window.location.href = '/admin/login';
+        }
+
+        // Tab switching
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Verify citizen
+        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const citizenId = document.getElementById('verifyCitizenId').value;
+            const resultDiv = document.getElementById('verifyResult');
+            
+            resultDiv.innerHTML = '<div class="loading">Verifying...</div>';
+
+            try {
+                const response = await fetch('/api/citizen/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ citizen_id: citizenId })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.citizen) {
+                    const c = data.citizen;
+                    resultDiv.innerHTML = `
+                        <div class="verify-card">
+                            <div class="verify-header">
+                                <h3>✓ Verified Citizen</h3>
+                            </div>
+                            <div class="verify-details">
+                                <div class="detail-row">
+                                    <span>Citizen ID:</span>
+                                    <strong>${c.Citizen_ID}</strong>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Income Tier:</span>
+                                    <strong>${c.Income_Tier}</strong>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Eligibility:</span>
+                                    <strong>${c.Scheme_Eligibility}</strong>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Claim Count:</span>
+                                    <strong>${c.Claim_Count}</strong>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Account Status:</span>
+                                    <strong class="status-${c.Account_Status.toLowerCase()}">${c.Account_Status}</strong>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Biometric:</span>
+                                    <strong>${c.Biometric_Status}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="verify-card error">
+                            <h3>✗ Not Found</h3>
+                            <p>Citizen ID not found in registry</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="verify-card error">
+                        <h3>Connection Error</h3>
+                        <p>Unable to verify citizen</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Load ledger
+        async function loadLedger() {
+            const ledgerContent = document.getElementById('ledgerContent');
+            ledgerContent.innerHTML = '<div class="loading">Loading ledger...</div>';
+
+            try {
+                const response = await fetch('/api/ledger/view');
+                const data = await response.json();
+
+                if (data.success && data.ledger.length > 0) {
+                    ledgerContent.innerHTML = data.ledger.map((entry, index) => `
+                        <div class="ledger-entry">
+                            <div class="entry-number">#${data.ledger.length - index}</div>
+                            <div class="entry-details">
+                                <div><strong>Citizen ID:</strong> ${entry.citizen_id || 'N/A'}</div>
+                                <div><strong>Hash:</strong> <code>${entry.hash ? entry.hash.substring(0, 16) + '...' : 'N/A'}</code></div>
+                                <div><strong>Timestamp:</strong> ${entry.timestamp || 'N/A'}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    ledgerContent.innerHTML = '<p class="empty-state">No ledger entries found</p>';
+                }
+            } catch (error) {
+                ledgerContent.innerHTML = '<p class="error-state">Failed to load ledger</p>';
+            }
+        }
+
+        // Verify ledger integrity
+        async function verifyLedger() {
+            alert('Verifying blockchain integrity...');
+            // Implement ledger verification
+        }
+
+        // Load stats on page load
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalCitizens').textContent = data.total_citizens || '2500';
+                    document.getElementById('approvedTx').textContent = data.approved || '0';
+                    document.getElementById('pendingTx').textContent = data.pending || '0';
+                    document.getElementById('rejectedTx').textContent = data.rejected || '0';
+                }
+            } catch (error) {
+                console.error('Failed to load stats');
+            }
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = '/admin/login';
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

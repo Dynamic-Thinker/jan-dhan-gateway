@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Jan-Dhan Gateway</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page admin-login">
+    <div class="login-container">
+        <div class="login-card admin-card">
+            <div class="login-header">
+                <div class="logo admin-logo">🛡️</div>
+                <h1>Administrator Access</h1>
+                <p>Jan-Dhan Gateway Control Panel</p>
+            </div>
+            
+            <form id="adminLoginForm" class="login-form">
+                <div class="form-group">
+                    <label for="adminUsername">Username</label>
+                    <input type="text" id="adminUsername" placeholder="Enter admin username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                </div>
+                
+                <button type="submit" class="btn-primary admin-btn">Admin Login</button>
+            </form>
+            
+            <div class="login-footer">
+                <a href="/">← Back to Citizen Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            // Simple validation (in production, verify with backend)
+            if (username === 'admin' && password === 'admin123') {
+                sessionStorage.setItem('userType', 'admin');
+                sessionStorage.setItem('adminUser', username);
+                window.location.href = '/admin/dashboard';
+            } else {
+                alert('Invalid admin credentials');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jan-Dhan Gateway - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">🏦</div>
+                <h1>Jan-Dhan Gateway</h1>
+                <p>Secure Benefit Distribution System</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="citizenId">Citizen ID</label>
+                    <input type="text" id="citizenId" placeholder="Enter your 12-digit Citizen ID" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pin">PIN</label>
+                    <input type="password" id="pin" placeholder="Enter your 4-digit PIN" required maxlength="4">
+                </div>
+                
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+            
+            <div class="login-footer">
+                <a href="/admin/login">Admin Access</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const citizenId = document.getElementById('citizenId').value;
+            const pin = document.getElementById('pin').value;
+            
+            // Simple validation (enhance with backend)
+            if (citizenId.length === 12 && pin.length === 4) {
+                // Store session (in production, use proper JWT tokens)
+                sessionStorage.setItem('citizenId', citizenId);
+                sessionStorage.setItem('userType', 'citizen');
+                window.location.href = '/dashboard';
+            } else {
+                alert('Invalid credentials');
+            }
+        });
+    </script>
+</body>
+</html>
